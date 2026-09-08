@@ -1,0 +1,82 @@
+.page {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  padding: 64px 24px;
+  text-align: left;
+}
+
+.lede {
+  margin: 0 0 28px;
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 180px;
+  padding: 24px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--social-bg);
+  cursor: pointer;
+}
+
+.dropzone.is-dragging {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.dropzone input {
+  display: none;
+}
+
+.hint {
+  font-size: 14px;
+}
+
+.file-list {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.file-list li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.file-name {
+  color: var(--text-h);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-size {
+  font-size: 14px;
+}
+
+.file-list button {
+  font: inherit;
+  font-size: 14px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.file-list button:hover {
+  border-color: var(--accent-border);
+}
