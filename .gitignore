@@ -1,4 +1,3 @@
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -17,7 +16,6 @@ build/
 .coverage
 htmlcov/
 
-# Node
 node_modules/
 dist-ssr/
 *.local
@@ -26,17 +24,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Environment and secrets
 .env
 .env.*
 !.env.example
 
-# Vector stores and local data (added later for RAG)
 chroma/
 *.faiss
 *.index
 
-# OS and editor
 .DS_Store
 .idea/
 .vscode/*
