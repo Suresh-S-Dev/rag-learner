@@ -1,53 +1,119 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --page: #ececee;
+  --surface: rgb(255 255 255 / 0.38);
+  --surface-strong: rgb(255 255 255 / 0.58);
+  --bg-frost: rgb(255 255 255 / 0.22);
+  --surface-fallback: #f4f4f5;
+  --glow: rgb(255 255 255 / 0.7);
+  --text: #5c5c64;
+  --text-h: #141416;
+  --text-muted: #8a8a93;
+  --border: rgb(255 255 255 / 0.62);
+  --code-bg: rgb(255 255 255 / 0.32);
+  --accent: #141416;
+  --accent-bg: rgb(20 20 22 / 0.06);
+  --accent-border: rgb(20 20 22 / 0.12);
+  --primary: #141416;
+  --primary-hover: #000000;
+  --primary-text: #f6f6f7;
+  --glass-blur: 40px;
+  --bg-blur: 56px;
+  --glass-saturate: 120%;
+  --glass-shadow:
+    0 12px 40px rgb(20 20 22 / 0.08),
+    inset 0 1px 0 rgb(255 255 255 / 0.7);
+  --danger: #8f2d24;
+  --success: #3f6b4e;
+  --shadow: var(--glass-shadow);
+  --radius: 8px;
+  --radius-md: 12px;
+  --radius-lg: 22px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --control-h: 44px;
+  --nav-offset: 108px;
+  --sans: Inter, system-ui, sans-serif;
+  --heading: Poppins, Inter, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
+  font: 16px/150% var(--sans);
+  letter-spacing: 0.01em;
+  color-scheme: light;
   color: var(--text);
-  background: var(--bg);
+  background: var(--page);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+html[data-theme='dark'] {
+  color-scheme: dark;
+  --page: #0c0c0d;
+  --surface: rgb(255 255 255 / 0.07);
+  --surface-strong: rgb(255 255 255 / 0.12);
+  --bg-frost: rgb(12 12 13 / 0.35);
+  --surface-fallback: #161617;
+  --glow: rgb(255 255 255 / 0.1);
+  --text: #a1a1aa;
+  --text-h: #f4f4f5;
+  --text-muted: #8a8a93;
+  --border: rgb(255 255 255 / 0.12);
+  --code-bg: rgb(255 255 255 / 0.05);
+  --accent: #f4f4f5;
+  --accent-bg: rgb(255 255 255 / 0.08);
+  --accent-border: rgb(255 255 255 / 0.16);
+  --primary: #f4f4f5;
+  --primary-hover: #ffffff;
+  --primary-text: #0c0c0d;
+  --glass-shadow:
+    0 20px 50px rgb(0 0 0 / 0.45),
+    inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --danger: #f0a8a2;
+  --success: #9db8a6;
+  --shadow: var(--glass-shadow);
+}
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
+html[data-theme='dark'] .profile-card {
+  border-color: rgb(255 255 255 / 0.16);
+  box-shadow:
+    0 20px 50px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.14);
+}
+
+html[data-theme='dark'] .profile-card.is-user {
+  background: rgb(40 40 46 / 0.55);
+}
+
+html[data-theme='dark'] .profile-card.is-assistant {
+  background: rgb(46 52 58 / 0.55);
+}
+
+html[data-theme='dark'] .profile-card.is-user .profile-banner {
+  background: linear-gradient(180deg, #1a1a1e 0%, #3a3a42 62%, transparent 100%);
+}
+
+html[data-theme='dark'] .profile-card.is-assistant .profile-banner {
+  background: linear-gradient(180deg, #2a3036 0%, #4a5560 62%, transparent 100%);
+}
+
+html[data-theme='dark'] .avatar.is-lg {
+  border-color: rgb(255 255 255 / 0.28);
+  background: rgb(255 255 255 / 0.1);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+
+html[data-theme='dark'] .avatar-edit {
+  border-color: rgb(255 255 255 / 0.2);
+  background: rgb(12 12 13 / 0.55);
+  color: #f4f4f5;
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 0.35),
+    inset 0 1px 0 rgb(255 255 255 / 0.16);
 }
 
 #root {
@@ -58,44 +124,82 @@
 
 body {
   margin: 0;
+  min-height: 100svh;
+  background: var(--page);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+.glass {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: var(--surface-fallback);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: var(--surface-fallback);
+  }
+
+  .atmosphere-frost {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 h1,
-h2 {
+h2,
+h3 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-h);
 }
 
 h1 {
   font-size: 36px;
-  letter-spacing: -0.8px;
-  margin: 0 0 8px;
+  letter-spacing: -0.04em;
+  margin: 0 0 var(--space-2);
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+  font-size: 22px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
 }
+
+h3 {
+  font-size: 16px;
+  margin: 0;
+}
+
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button,
+textarea,
+input {
+  font-family: inherit;
 }
 
 code {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: var(--radius);
+  color: var(--text-h);
   font-size: 15px;
   line-height: 135%;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   background: var(--code-bg);
 }

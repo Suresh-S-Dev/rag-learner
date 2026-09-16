@@ -31,6 +31,7 @@ pnpm-debug.log*
 chroma/
 *.faiss
 *.index
+server/data/
 
 .DS_Store
 .idea/
