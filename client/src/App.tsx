@@ -86,7 +86,6 @@ function App() {
   const [files, setFiles] = useState<DocumentItem[]>([])
   const [pending, setPending] = useState<PendingUpload[]>([])
   const [isDragging, setIsDragging] = useState(false)
-  const [galleryDragging, setGalleryDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [galleryUploading, setGalleryUploading] = useState(false)
   const [galleryPending, setGalleryPending] = useState<File[]>([])
@@ -302,12 +301,6 @@ function App() {
     event.target.value = ''
   }
 
-  function onGalleryDrop(event: DragEvent<HTMLLabelElement>) {
-    event.preventDefault()
-    setGalleryDragging(false)
-    if (!galleryUploading && event.dataTransfer.files.length) void addImages(event.dataTransfer.files)
-  }
-
   async function removeDocument(id: number) {
     try {
       await deleteDocument(id)
@@ -417,7 +410,7 @@ function App() {
   return (
     <>
       <Atmosphere />
-      <Toaster theme={theme} />
+      <Toaster />
       <div className={`app${tab === 'home' ? ' is-chat' : ''}${tab === 'documents' ? ' is-docs' : ''}${tab === 'learn' ? ' is-learn' : ''}${tab === 'profile' ? ' is-profile' : ''}`}>
       <header className="header">
         <span className="brand-mark" aria-hidden="true">
@@ -477,13 +470,6 @@ function App() {
             images={images}
             pending={galleryPending}
             uploading={galleryUploading}
-            isDragging={galleryDragging}
-            onDragOver={(event) => {
-              event.preventDefault()
-              if (!galleryUploading) setGalleryDragging(true)
-            }}
-            onDragLeave={() => setGalleryDragging(false)}
-            onDrop={onGalleryDrop}
             onInputChange={onGalleryInput}
             onRemove={(id) => void removeImage(id)}
           />

@@ -1,4 +1,6 @@
-import type { ChangeEvent, DragEvent } from 'react'
+import { useRef, type ChangeEvent } from 'react'
+import { Plus } from 'lucide-react'
+import Button from './Button'
 import EmptyState from './EmptyState'
 import Panel from './Panel'
 import { ImageGallery } from '@/components/ui/image-gallery'
@@ -11,45 +13,32 @@ type Props = {
   images: GalleryImage[]
   pending: File[]
   uploading: boolean
-  isDragging: boolean
-  onDragOver: (event: DragEvent<HTMLLabelElement>) => void
-  onDragLeave: () => void
-  onDrop: (event: DragEvent<HTMLLabelElement>) => void
   onInputChange: (event: ChangeEvent<HTMLInputElement>) => void
   onRemove: (id: number) => void
 }
 
-function GalleryPanel({
-  images,
-  pending,
-  uploading,
-  isDragging,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onInputChange,
-  onRemove,
-}: Props) {
+function GalleryPanel({ images, pending, uploading, onInputChange, onRemove }: Props) {
+  const picker = useRef<HTMLInputElement>(null)
+
   return (
     <Panel title="Gallery">
-      <label
-        className={`dropzone glass${isDragging ? ' is-dragging' : ''}${uploading ? ' is-disabled' : ''}`}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-      >
+      <div className="gallery-toolbar">
         <input
+          ref={picker}
+          className="file-hidden"
           type="file"
           multiple
           accept={ACCEPTED_IMAGES}
           onChange={onInputChange}
           disabled={uploading}
         />
-        <span>{uploading ? 'Uploading images…' : 'Drop images here, or click to browse'}</span>
-        <span className="hint">PNG, JPG, WEBP, or GIF</span>
-      </label>
+        <Button variant="primary" disabled={uploading} onClick={() => picker.current?.click()}>
+          <Plus size={16} strokeWidth={2} />
+          {uploading ? 'Adding…' : 'Add images'}
+        </Button>
+      </div>
       {images.length === 0 && pending.length === 0 ? (
-        <EmptyState>No images yet. Upload from here.</EmptyState>
+        <EmptyState>No images yet.</EmptyState>
       ) : (
         <ImageGallery
           items={images.map((image) => ({

@@ -62,7 +62,12 @@ function useFileRatios(files: File[]) {
 }
 
 export function ImageGallery({ items, pending = [], onRemove }: ImageGalleryProps) {
+  const [open, setOpen] = useState<GalleryItem | null>(null)
   const pendingRatios = useFileRatios(pending)
+
+  useEffect(() => {
+    if (open && !items.some((item) => item.id === open.id)) setOpen(null)
+  }, [items, open])
   const slots: Slot[] = [
     ...pending.map((file, index) => ({
       kind: 'pending' as const,
@@ -87,6 +92,7 @@ export function ImageGallery({ items, pending = [], onRemove }: ImageGalleryProp
                     key={slot.item.id}
                     alt={slot.item.alt}
                     src={slot.item.src}
+                    onOpen={() => setOpen(slot.item)}
                     onRemove={onRemove ? () => onRemove(slot.item.id) : undefined}
                   />
                 ),
@@ -95,6 +101,7 @@ export function ImageGallery({ items, pending = [], onRemove }: ImageGalleryProp
           ),
         )}
       </div>
+      {open ? <Lightbox item={open} onClose={() => setOpen(null)} /> : null}
     </div>
   )
 }
@@ -113,10 +120,11 @@ function PendingImage({ ratio }: { ratio: number }) {
 type AnimatedImageProps = {
   alt: string
   src: string
+  onOpen: () => void
   onRemove?: () => void
 }
 
-function AnimatedImage({ alt, src, onRemove }: AnimatedImageProps) {
+function AnimatedImage({ alt, src, onOpen, onRemove }: AnimatedImageProps) {
   const ref = useRef<HTMLDivElement>(null)
   const isInView = useInView(ref, { once: true })
   const [isLoading, setIsLoading] = useState(true)
@@ -134,11 +142,12 @@ function AnimatedImage({ alt, src, onRemove }: AnimatedImageProps) {
           alt={alt}
           src={src}
           className={cn(
-            'relative size-full rounded-[var(--radius-md)] object-cover opacity-0 transition-all duration-1000 ease-in-out',
+            'relative size-full cursor-zoom-in rounded-[var(--radius-md)] object-cover opacity-0 transition-all duration-1000 ease-in-out',
             {
               'opacity-100': isInView && !isLoading,
             },
           )}
+          onClick={onOpen}
           onLoad={(event) => {
             const image = event.currentTarget
             if (image.naturalWidth > 0 && image.naturalHeight > 0) {
@@ -154,11 +163,34 @@ function AnimatedImage({ alt, src, onRemove }: AnimatedImageProps) {
           type="button"
           className="btn btn-icon absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100"
           aria-label={`Remove ${alt}`}
-          onClick={onRemove}
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
         >
           <X size={16} strokeWidth={2} />
         </button>
       ) : null}
+    </div>
+  )
+}
+
+function Lightbox({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
+  return (
+    <div className="gallery-lightbox" role="dialog" aria-modal="true" aria-label={item.alt} onClick={onClose}>
+      <button type="button" className="btn btn-icon gallery-lightbox-close" aria-label="Close" onClick={onClose}>
+        <X size={18} strokeWidth={2} />
+      </button>
+      <img className="gallery-lightbox-image" src={item.src} alt={item.alt} onClick={(event) => event.stopPropagation()} />
+      <p className="gallery-lightbox-name">{item.alt}</p>
     </div>
   )
 }
