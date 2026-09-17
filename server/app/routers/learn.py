@@ -2,7 +2,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from app.db import get_db
 from app.routers.gallery import image_payload
-from app.services.gallery import save_image
+from app.services.gallery import read_image
 
 router = APIRouter()
 
@@ -47,10 +47,10 @@ async def create_learn_point(
     image_id = None
     connection = get_db()
     if image is not None and image.filename:
-        name, stored_name, mime = await save_image(image)
+        name, mime, data = await read_image(image)
         cursor = connection.execute(
-            "INSERT INTO gallery_images (name, stored_name, mime) VALUES (?, ?, ?)",
-            (name, stored_name, mime),
+            "INSERT INTO gallery_images (name, stored_name, mime, data) VALUES (?, ?, ?, ?)",
+            (name, "", mime, data),
         )
         image_id = cursor.lastrowid
     cursor = connection.execute(

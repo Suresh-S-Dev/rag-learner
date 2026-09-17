@@ -17,6 +17,7 @@ export type DocumentItem = {
   chunks: number
   error: string | null
   detail: string | null
+  createdAt: string | null
 }
 
 export type PendingUpload = {
@@ -37,6 +38,14 @@ export type RetrievedChunk = {
   source: string
   score: number
   text: string
+}
+
+export type ChatTurn = {
+  id: number
+  createdAt: string
+  question: string
+  answer: string
+  chunks: RetrievedChunk[]
 }
 
 export type ChatMessage = {

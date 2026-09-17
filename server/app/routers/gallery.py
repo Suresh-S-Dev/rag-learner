@@ -1,8 +1,8 @@
 from fastapi import APIRouter, File, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 
 from app.db import get_db
-from app.services.gallery import remove_stored, save_image, stored_path
+from app.services.gallery import read_image
 
 router = APIRouter()
 
@@ -27,16 +27,13 @@ def list_gallery():
 def get_gallery_file(image_id: int):
     connection = get_db()
     row = connection.execute(
-        "SELECT stored_name, mime, name FROM gallery_images WHERE id = ?",
+        "SELECT data, mime, name FROM gallery_images WHERE id = ?",
         (image_id,),
     ).fetchone()
     connection.close()
-    if row is None:
+    if row is None or row["data"] is None:
         raise HTTPException(status_code=404, detail="Image not found")
-    path = stored_path(row["stored_name"])
-    if not path.exists():
-        raise HTTPException(status_code=404, detail="Image file missing")
-    return FileResponse(path, media_type=row["mime"], filename=row["name"])
+    return Response(content=bytes(row["data"]), media_type=row["mime"])
 
 
 @router.post("/gallery")
@@ -46,10 +43,10 @@ async def upload_gallery(files: list[UploadFile] = File(...)):
     created = []
     connection = get_db()
     for upload in files:
-        name, stored_name, mime = await save_image(upload)
+        name, mime, data = await read_image(upload)
         cursor = connection.execute(
-            "INSERT INTO gallery_images (name, stored_name, mime) VALUES (?, ?, ?)",
-            (name, stored_name, mime),
+            "INSERT INTO gallery_images (name, stored_name, mime, data) VALUES (?, ?, ?, ?)",
+            (name, "", mime, data),
         )
         created.append(cursor.lastrowid)
     connection.commit()
@@ -64,12 +61,9 @@ async def upload_gallery(files: list[UploadFile] = File(...)):
 @router.delete("/gallery/{image_id}")
 def delete_gallery(image_id: int):
     connection = get_db()
-    row = connection.execute("SELECT stored_name FROM gallery_images WHERE id = ?", (image_id,)).fetchone()
-    if row is None:
-        connection.close()
-        raise HTTPException(status_code=404, detail="Image not found")
-    connection.execute("DELETE FROM gallery_images WHERE id = ?", (image_id,))
+    cursor = connection.execute("DELETE FROM gallery_images WHERE id = ?", (image_id,))
     connection.commit()
     connection.close()
-    remove_stored(row["stored_name"])
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Image not found")
     return {"ok": True}

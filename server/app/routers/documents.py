@@ -1,6 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, UploadFile
 
-from app.db import chunk_count, document_payload, get_db
+from app.db import chunk_count, document_payload, get_db, utc_now
 from app.services.files import read_upload
 from app.services.pipeline import process_document
 
@@ -10,7 +10,9 @@ router = APIRouter()
 @router.get("/documents")
 def list_documents():
     connection = get_db()
-    rows = connection.execute("SELECT id, name, status, error, detail FROM documents ORDER BY id DESC").fetchall()
+    rows = connection.execute(
+        "SELECT id, name, status, error, detail, created_at FROM documents ORDER BY id DESC"
+    ).fetchall()
     result = [document_payload(row, chunk_count(connection, row["id"])) for row in rows]
     connection.close()
     return {"files": result}
@@ -20,7 +22,7 @@ def list_documents():
 def get_document(document_id: int):
     connection = get_db()
     row = connection.execute(
-        "SELECT id, name, text, status, error, detail FROM documents WHERE id = ?",
+        "SELECT id, name, text, status, error, detail, created_at FROM documents WHERE id = ?",
         (document_id,),
     ).fetchone()
     if row is None:
@@ -73,15 +75,15 @@ async def ingest(background: BackgroundTasks, files: list[UploadFile] = File(...
         data = await upload.read()
         text = read_upload(name, data).strip()
         cursor = connection.execute(
-            "INSERT INTO documents (name, text, status, error, detail) VALUES (?, ?, ?, ?, ?)",
-            (name, text, "queued", None, "Saved, waiting to process"),
+            "INSERT INTO documents (name, text, status, error, detail, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (name, text, "queued", None, "Saved, waiting to process", utc_now()),
         )
         created.append(cursor.lastrowid)
     connection.commit()
     result = []
     for document_id in created:
         row = connection.execute(
-            "SELECT id, name, status, error, detail FROM documents WHERE id = ?",
+            "SELECT id, name, status, error, detail, created_at FROM documents WHERE id = ?",
             (document_id,),
         ).fetchone()
         result.append(document_payload(row, chunk_count(connection, document_id)))

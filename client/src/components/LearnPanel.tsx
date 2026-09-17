@@ -1,99 +1,72 @@
-import { useState, type FormEvent } from 'react'
-import Button from './Button'
+import { useEffect, useMemo, useState } from 'react'
+import { Search } from 'lucide-react'
 import EmptyState from './EmptyState'
 import Panel from './Panel'
-import TextArea from './TextArea'
-import { mediaUrl } from '../api/client'
 import { RAG_LESSONS } from '../learn/lessons'
-import type { LearnPoint } from '../types'
 
-type Props = {
-  points: LearnPoint[]
-  error: string
-  saving: boolean
-  onCreate: (title: string, body: string, image: File | null) => Promise<void>
-  onRemove: (id: number) => void
+function matches(query: string, title: string, body: string) {
+  if (!query) return true
+  return title.toLowerCase().includes(query) || body.toLowerCase().includes(query)
 }
 
-function LearnPanel({ points, error, saving, onCreate, onRemove }: Props) {
-  const [title, setTitle] = useState('')
-  const [body, setBody] = useState('')
-  const [image, setImage] = useState<File | null>(null)
+function LearnPanel() {
+  const [query, setQuery] = useState('')
+  const [active, setActive] = useState(RAG_LESSONS[0]?.title ?? '')
+  const needle = query.trim().toLowerCase()
+  const lessons = useMemo(
+    () => RAG_LESSONS.filter((lesson) => matches(needle, lesson.title, lesson.body)),
+    [needle],
+  )
+  const selected = lessons.find((lesson) => lesson.title === active) ?? lessons[0] ?? null
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!title.trim() || saving) return
-    await onCreate(title.trim(), body.trim(), image)
-    setTitle('')
-    setBody('')
-    setImage(null)
-  }
+  useEffect(() => {
+    if (selected && selected.title !== active) setActive(selected.title)
+  }, [active, selected])
 
   return (
-    <Panel title="Learn RAG">
-      <p className="hint">Study the stages this project builds by hand, then add your own notes and diagrams.</p>
-      {error ? <p className="error">{error}</p> : null}
-
-      <form className="ask-form" onSubmit={onSubmit}>
+    <Panel title="Learn RAG" className="learn-shell">
+      <label className="learn-search">
+        <Search size={16} strokeWidth={2} aria-hidden="true" />
         <input
-          className="field-input glass"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="A point you want to remember"
-          disabled={saving}
+          className="field-input"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search questions"
+          type="search"
         />
-        <TextArea
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          placeholder="Explain it in your own words"
-          rows={4}
-          disabled={saving}
-        />
-        <label className="file-pick glass hint">
-          <input
-            type="file"
-            accept=".png,.jpg,.jpeg,.webp,.gif"
-            onChange={(event) => setImage(event.target.files?.[0] ?? null)}
-            disabled={saving}
-          />
-          {image ? image.name : 'Attach an image for the gallery'}
-        </label>
-        <Button type="submit" variant="primary" block disabled={saving || !title.trim()}>
-          {saving ? 'Saving…' : 'Add learning point'}
-        </Button>
-      </form>
-
-      <h3>RAG stages</h3>
-      <ul className="lesson-list">
-        {RAG_LESSONS.map((lesson) => (
-          <li key={lesson.title} className="glass lesson-card">
-            <p className="file-name">{lesson.title}</p>
-            <p className="hint">{lesson.body}</p>
-          </li>
-        ))}
-      </ul>
-
-      <h3>Your points</h3>
-      {points.length === 0 ? (
-        <EmptyState>Add a point above. Images you attach also show up in Gallery.</EmptyState>
-      ) : (
-        <ul className="lesson-list">
-          {points.map((point) => (
-            <li key={point.id} className="glass lesson-card">
-              <div className="doc-view-head">
-                <p className="file-name">{point.title}</p>
-                <Button variant="secondary" onClick={() => onRemove(point.id)}>
-                  Remove
-                </Button>
-              </div>
-              {point.body ? <p className="hint">{point.body}</p> : null}
-              {point.image ? (
-                <img className="lesson-image" src={mediaUrl(point.image.url)} alt={point.image.name} />
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
+      </label>
+      <div className="learn-split">
+        <div className="learn-questions" role="listbox" aria-label="Questions">
+          {lessons.length === 0 ? (
+            <EmptyState>No questions match that search.</EmptyState>
+          ) : (
+            lessons.map((lesson, index) => (
+              <button
+                key={lesson.title}
+                type="button"
+                role="option"
+                aria-selected={selected?.title === lesson.title}
+                className={`learn-q glass${selected?.title === lesson.title ? ' is-active' : ''}`}
+                onClick={() => setActive(lesson.title)}
+              >
+                <span className="learn-q-index">{String(index + 1).padStart(2, '0')}</span>
+                <span className="learn-q-title">{lesson.title}</span>
+              </button>
+            ))
+          )}
+        </div>
+        <div className="learn-answer glass">
+          {selected ? (
+            <>
+              <p className="learn-a-kicker">Answer</p>
+              <h3 className="learn-a-title">{selected.title}</h3>
+              <p className="learn-a-body">{selected.body}</p>
+            </>
+          ) : (
+            <EmptyState>Pick a question to read the answer.</EmptyState>
+          )}
+        </div>
+      </div>
     </Panel>
   )
 }

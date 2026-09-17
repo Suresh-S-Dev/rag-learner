@@ -5,6 +5,7 @@ import Button from './Button'
 import Panel from './Panel'
 import ThemeToggle from './ThemeToggle'
 import { DEFAULT_PROFILE, readAvatar } from '../profile'
+import { toast, toastFromError } from '@/lib/toast'
 import type { Profile, Theme, ThemeMode } from '../types'
 
 type Props = {
@@ -21,7 +22,6 @@ type CardProps = {
   name: string
   avatar: string
   placeholder: string
-  error: string
   dirty: boolean
   onNameChange: (value: string) => void
   onPhoto: (event: ChangeEvent<HTMLInputElement>) => void
@@ -34,7 +34,6 @@ function IdentityCard({
   name,
   avatar,
   placeholder,
-  error,
   dirty,
   onNameChange,
   onPhoto,
@@ -63,7 +62,6 @@ function IdentityCard({
             placeholder={placeholder}
           />
         </label>
-        {error ? <p className="error">{error}</p> : null}
         <Button type="button" variant="primary" block disabled={!dirty} onClick={onApply}>
           Apply
         </Button>
@@ -77,8 +75,6 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
   const [assistantName, setAssistantName] = useState(profile.assistantName)
   const [userAvatar, setUserAvatar] = useState(profile.userAvatar)
   const [assistantAvatar, setAssistantAvatar] = useState(profile.assistantAvatar)
-  const [userError, setUserError] = useState('')
-  const [assistantError, setAssistantError] = useState('')
   const userDirty = userName.trim() !== profile.userName || userAvatar !== profile.userAvatar
   const assistantDirty = assistantName.trim() !== profile.assistantName || assistantAvatar !== profile.assistantAvatar
 
@@ -90,15 +86,11 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
       const src = await readAvatar(file)
       if (who === 'user') {
         setUserAvatar(src)
-        setUserError('')
       } else {
         setAssistantAvatar(src)
-        setAssistantError('')
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not read image'
-      if (who === 'user') setUserError(message)
-      else setAssistantError(message)
+      toastFromError(err, 'Could not read image')
     }
   }
 
@@ -111,6 +103,7 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
       assistantName: profile.assistantName,
       assistantAvatar: profile.assistantAvatar,
     })
+    toast.success('User profile saved')
   }
 
   function applyAssistant() {
@@ -122,6 +115,7 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
       assistantName: nextName,
       assistantAvatar,
     })
+    toast.success('Assistant profile saved')
   }
 
   return (
@@ -146,7 +140,6 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
           name={userName}
           avatar={userAvatar}
           placeholder="Your name"
-          error={userError}
           dirty={userDirty}
           onNameChange={setUserName}
           onPhoto={(event) => void onPhoto(event, 'user')}
@@ -158,7 +151,6 @@ function ProfilePanel({ theme, themeMode, profile, onThemeMode, onSave }: Props)
           name={assistantName}
           avatar={assistantAvatar}
           placeholder="Assistant name"
-          error={assistantError}
           dirty={assistantDirty}
           onNameChange={setAssistantName}
           onPhoto={(event) => void onPhoto(event, 'assistant')}

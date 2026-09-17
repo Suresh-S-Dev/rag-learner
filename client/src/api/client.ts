@@ -48,6 +48,18 @@ export async function suggestQuestions() {
   return response.json()
 }
 
+export async function listChat() {
+  const response = await fetch(`${API}/chat`)
+  if (!response.ok) throw new Error(await readError(response))
+  return response.json()
+}
+
+export async function deleteChatTurn(id: number) {
+  const response = await fetch(`${API}/chat/${id}`, { method: 'DELETE' })
+  if (!response.ok) throw new Error(await readError(response))
+  return response.json()
+}
+
 export async function askQuestion(question: string) {
   const response = await fetch(`${API}/ask`, {
     method: 'POST',

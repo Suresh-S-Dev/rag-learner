@@ -1,11 +1,23 @@
+import json
+
 from fastapi import APIRouter, HTTPException
 
-from app.db import get_db
+from app.db import get_db, utc_now
 from app.schemas import AskRequest
 from app.services.retrieve import answer_question
 from app.services.suggest import generate_suggestions
 
 router = APIRouter()
+
+
+def turn_payload(row) -> dict:
+    return {
+        "id": row["id"],
+        "createdAt": row["created_at"],
+        "question": row["question"],
+        "answer": row["answer"],
+        "chunks": json.loads(row["chunks"]),
+    }
 
 
 @router.post("/ask")
@@ -31,9 +43,46 @@ def ask(payload: AskRequest):
     if not rows:
         raise HTTPException(status_code=400, detail="No embeddings found. Ingest notes first.")
     try:
-        return answer_question(question, rows)
+        result = answer_question(question, rows)
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+    created_at = utc_now()
+    connection = get_db()
+    cursor = connection.execute(
+        "INSERT INTO chat_turns (created_at, question, answer, chunks) VALUES (?, ?, ?, ?)",
+        (created_at, question, result["answer"], json.dumps(result["chunks"])),
+    )
+    connection.commit()
+    turn_id = cursor.lastrowid
+    connection.close()
+    return {
+        "id": turn_id,
+        "createdAt": created_at,
+        "question": question,
+        "answer": result["answer"],
+        "chunks": result["chunks"],
+    }
+
+
+@router.get("/chat")
+def list_chat():
+    connection = get_db()
+    rows = connection.execute(
+        "SELECT id, created_at, question, answer, chunks FROM chat_turns ORDER BY id ASC"
+    ).fetchall()
+    connection.close()
+    return {"turns": [turn_payload(row) for row in rows]}
+
+
+@router.delete("/chat/{turn_id}")
+def delete_chat(turn_id: int):
+    connection = get_db()
+    cursor = connection.execute("DELETE FROM chat_turns WHERE id = ?", (turn_id,))
+    connection.commit()
+    connection.close()
+    if cursor.rowcount == 0:
+        raise HTTPException(status_code=404, detail="Chat turn not found")
+    return {"ok": True}
 
 
 @router.get("/suggest")

@@ -24,6 +24,7 @@ export function persistThemeMode(mode: ThemeMode) {
 
 export function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme
+  document.documentElement.classList.toggle('dark', theme === 'dark')
 }
 
 export function getInitialTheme(): Theme {

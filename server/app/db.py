@@ -1,6 +1,13 @@
 import sqlite3
 
+from datetime import datetime, timezone
+
 from app.config import DB_PATH
+from app.services.gallery import migrate_gallery_blobs
+
+
+def utc_now():
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
 def get_db():
@@ -12,12 +19,8 @@ def get_db():
     return connection
 
 
-from app.services.gallery import ensure_gallery_dir
-
-
 def init_db():
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    ensure_gallery_dir()
     connection = get_db()
     connection.execute(
         """
@@ -35,6 +38,12 @@ def init_db():
         connection.execute("ALTER TABLE documents ADD COLUMN error TEXT")
     if "detail" not in columns:
         connection.execute("ALTER TABLE documents ADD COLUMN detail TEXT")
+    if "created_at" not in columns:
+        connection.execute("ALTER TABLE documents ADD COLUMN created_at TEXT")
+    connection.execute(
+        "UPDATE documents SET created_at = ? WHERE created_at IS NULL OR created_at = ''",
+        (utc_now(),),
+    )
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS chunks (
@@ -61,10 +70,12 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             stored_name TEXT NOT NULL,
-            mime TEXT NOT NULL
+            mime TEXT NOT NULL,
+            data BLOB
         )
         """
     )
+    migrate_gallery_blobs(connection)
     connection.execute(
         """
         CREATE TABLE IF NOT EXISTS learn_points (
@@ -73,6 +84,17 @@ def init_db():
             body TEXT NOT NULL,
             image_id INTEGER,
             FOREIGN KEY (image_id) REFERENCES gallery_images(id) ON DELETE SET NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS chat_turns (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL,
+            question TEXT NOT NULL,
+            answer TEXT NOT NULL,
+            chunks TEXT NOT NULL
         )
         """
     )
@@ -104,6 +126,7 @@ def document_payload(row: sqlite3.Row, chunks: int) -> dict:
         "status": row["status"],
         "error": row["error"],
         "detail": row["detail"] if "detail" in keys else None,
+        "createdAt": row["created_at"] if "created_at" in keys else None,
         "chunks": chunks,
     }
 

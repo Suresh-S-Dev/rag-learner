@@ -1,3 +1,12 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@theme inline {
+  --color-accent: var(--accent-bg);
+  --color-border: var(--border);
+}
+
 :root {
   --page: #ececee;
   --surface: rgb(255 255 255 / 0.38);
@@ -105,6 +114,21 @@ html[data-theme='dark'] .avatar.is-lg {
   border-color: rgb(255 255 255 / 0.28);
   background: rgb(255 255 255 / 0.1);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+
+html[data-theme='dark'] .doc-mark.is-pdf {
+  background: rgb(240 168 162 / 0.16);
+  color: #f0a8a2;
+}
+
+html[data-theme='dark'] .doc-mark.is-docx {
+  background: rgb(147 197 253 / 0.16);
+  color: #93c5fd;
+}
+
+html[data-theme='dark'] .doc-mark.is-md {
+  background: rgb(157 184 166 / 0.18);
+  color: #9db8a6;
 }
 
 html[data-theme='dark'] .avatar-edit {

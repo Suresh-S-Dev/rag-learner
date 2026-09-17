@@ -1,11 +1,13 @@
-import { useEffect, useRef, type FormEvent, type KeyboardEvent } from 'react'
-import { ArrowUp } from 'lucide-react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { ArrowUp, SquarePen } from 'lucide-react'
 import Avatar from './Avatar'
 import Button from './Button'
 import EmptyState from './EmptyState'
 import FormattedText from './FormattedText'
 import TextArea from './TextArea'
-import type { ChatMessage, Profile, RetrievedChunk } from '../types'
+import type { ChatMessage, ChatTurn, Profile, RetrievedChunk } from '../types'
+
+type SideTab = 'chunks' | 'history'
 
 type Props = {
   messages: ChatMessage[]
@@ -13,7 +15,8 @@ type Props = {
   asking: boolean
   canAsk: boolean
   activeChunks: RetrievedChunk[]
-  error: string
+  history: ChatTurn[]
+  activeTurnId: number | null
   suggestions: string[]
   suggesting: boolean
   profile: Profile
@@ -21,6 +24,20 @@ type Props = {
   onSend: (event: FormEvent<HTMLFormElement>) => void
   onPick: (text: string) => void
   onSelect: (message: ChatMessage) => void
+  onSelectHistory: (turn: ChatTurn) => void
+  onRemoveHistory: (id: number) => void
+  onNewChat: () => void
+}
+
+function formatWhen(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function ChatPanel({
@@ -29,7 +46,8 @@ function ChatPanel({
   asking,
   canAsk,
   activeChunks,
-  error,
+  history,
+  activeTurnId,
   suggestions,
   suggesting,
   profile,
@@ -37,8 +55,12 @@ function ChatPanel({
   onSend,
   onPick,
   onSelect,
+  onSelectHistory,
+  onRemoveHistory,
+  onNewChat,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
+  const [side, setSide] = useState<SideTab>('chunks')
 
   useEffect(() => {
     const node = scroller.current
@@ -56,6 +78,13 @@ function ChatPanel({
   return (
     <div className="chat-shell">
       <section className="chat-main glass">
+        <div className="chat-toolbar">
+          <h2 className="panel-title">Chat</h2>
+          <Button variant="secondary" onClick={onNewChat} disabled={asking || messages.length === 0}>
+            <SquarePen size={16} strokeWidth={2} />
+            New chat
+          </Button>
+        </div>
         <div className="chat-thread" ref={scroller}>
           {messages.length === 0 ? (
             <div className="chat-empty">
@@ -84,7 +113,10 @@ function ChatPanel({
                   <button
                     type="button"
                     className={`chat-bubble is-${message.role}${message.chunks.length ? ' has-chunks' : ''}`}
-                    onClick={() => onSelect(message)}
+                    onClick={() => {
+                      onSelect(message)
+                      setSide('chunks')
+                    }}
                   >
                     <div className="chat-head">
                       <Avatar
@@ -114,7 +146,6 @@ function ChatPanel({
           )}
         </div>
         <form className="chat-composer" onSubmit={onSend}>
-          {error ? <p className="error">{error}</p> : null}
           <TextArea
             className="chat-input"
             value={draft}
@@ -130,18 +161,64 @@ function ChatPanel({
         </form>
       </section>
       <aside className="chat-sidebar glass">
-        <h2 className="panel-title">Retrieved chunks</h2>
-        {activeChunks.length === 0 ? (
-          <EmptyState>Chunks used for the selected answer will appear here.</EmptyState>
+        <div className="sidebar-tabs" role="tablist" aria-label="Sidebar">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={side === 'chunks'}
+            className={`sidebar-tab${side === 'chunks' ? ' is-active' : ''}`}
+            onClick={() => setSide('chunks')}
+          >
+            Retrieved chunks
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={side === 'history'}
+            className={`sidebar-tab${side === 'history' ? ' is-active' : ''}`}
+            onClick={() => setSide('history')}
+          >
+            History
+          </button>
+        </div>
+        {side === 'chunks' ? (
+          activeChunks.length === 0 ? (
+            <EmptyState>Retrieved chunks from the selected answer will appear here.</EmptyState>
+          ) : (
+            <ul className="chunk-list">
+              {activeChunks.map((chunk, index) => (
+                <li key={`${chunk.source}-${index}`}>
+                  <div className="doc-view-head">
+                    <span className="file-name">{chunk.source}</span>
+                    <span className="file-size">{chunk.score.toFixed(2)}</span>
+                  </div>
+                  <pre className="doc-text glass">{chunk.text}</pre>
+                </li>
+              ))}
+            </ul>
+          )
+        ) : history.length === 0 ? (
+          <EmptyState>Questions you ask are saved here.</EmptyState>
         ) : (
-          <ul className="chunk-list">
-            {activeChunks.map((chunk, index) => (
-              <li key={`${chunk.source}-${index}`}>
-                <div className="doc-view-head">
-                  <span className="file-name">{chunk.source}</span>
-                  <span className="file-size">{chunk.score.toFixed(2)}</span>
+          <ul className="history-list">
+            {[...history].reverse().map((turn) => (
+              <li key={turn.id}>
+                <div className={`history-item${activeTurnId === turn.id ? ' is-active' : ''}`}>
+                  <button
+                    type="button"
+                    className="history-open"
+                    onClick={() => {
+                      onSelectHistory(turn)
+                      setSide('chunks')
+                    }}
+                  >
+                    <span className="file-name">{turn.question}</span>
+                    <span className="file-size">{formatWhen(turn.createdAt)}</span>
+                  </button>
+                  <Button variant="ghost" onClick={() => onRemoveHistory(turn.id)}>
+                    Remove
+                  </Button>
                 </div>
-                <pre className="doc-text glass">{chunk.text}</pre>
               </li>
             ))}
           </ul>

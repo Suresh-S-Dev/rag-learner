@@ -1,7 +1,7 @@
 import type { ChangeEvent, DragEvent } from 'react'
-import Button from './Button'
 import EmptyState from './EmptyState'
 import Panel from './Panel'
+import { ImageGallery } from '@/components/ui/image-gallery'
 import { mediaUrl } from '../api/client'
 import type { GalleryImage } from '../types'
 
@@ -9,9 +9,9 @@ const ACCEPTED_IMAGES = '.png,.jpg,.jpeg,.webp,.gif'
 
 type Props = {
   images: GalleryImage[]
+  pending: File[]
   uploading: boolean
   isDragging: boolean
-  error: string
   onDragOver: (event: DragEvent<HTMLLabelElement>) => void
   onDragLeave: () => void
   onDrop: (event: DragEvent<HTMLLabelElement>) => void
@@ -21,9 +21,9 @@ type Props = {
 
 function GalleryPanel({
   images,
+  pending,
   uploading,
   isDragging,
-  error,
   onDragOver,
   onDragLeave,
   onDrop,
@@ -48,24 +48,18 @@ function GalleryPanel({
         <span>{uploading ? 'Uploading images…' : 'Drop images here, or click to browse'}</span>
         <span className="hint">PNG, JPG, WEBP, or GIF</span>
       </label>
-      <p className="hint">Diagrams and screenshots from Learn also appear here.</p>
-      {error ? <p className="error">{error}</p> : null}
-      {images.length === 0 ? (
-        <EmptyState>No images yet. Upload from here or attach one on a learning point.</EmptyState>
+      {images.length === 0 && pending.length === 0 ? (
+        <EmptyState>No images yet. Upload from here.</EmptyState>
       ) : (
-        <ul className="gallery-grid">
-          {images.map((image) => (
-            <li key={image.id} className="glass gallery-card">
-              <img src={mediaUrl(image.url)} alt={image.name} />
-              <div className="doc-view-head">
-                <span className="file-name">{image.name}</span>
-                <Button variant="secondary" onClick={() => onRemove(image.id)}>
-                  Remove
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <ImageGallery
+          items={images.map((image) => ({
+            id: image.id,
+            src: mediaUrl(image.url),
+            alt: image.name,
+          }))}
+          pending={pending}
+          onRemove={onRemove}
+        />
       )}
     </Panel>
   )

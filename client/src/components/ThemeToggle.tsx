@@ -1,4 +1,5 @@
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { toast } from '@/lib/toast'
 import type { ThemeMode } from '../types'
 
 const OPTIONS: { id: ThemeMode; label: string; Icon: typeof Sun }[] = [
@@ -24,7 +25,11 @@ function ThemeToggle({ mode, onChange }: Props) {
             className={`theme-option${selected ? ' is-selected' : ''}`}
             role="radio"
             aria-checked={selected}
-            onClick={() => onChange(id)}
+            onClick={() => {
+              if (selected) return
+              onChange(id)
+              toast.success(`${label} appearance`)
+            }}
           >
             <Icon size={15} strokeWidth={2} />
             {label}
