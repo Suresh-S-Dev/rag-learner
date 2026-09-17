@@ -79,6 +79,42 @@ def _parse_questions(raw: str) -> list[str]:
     return questions[:3]
 
 
+def generate_text(client, prompt: str) -> str:
+    response = client.converse(
+        modelId=CHAT_MODEL,
+        messages=[{"role": "user", "content": [{"text": prompt}]}],
+    )
+    parts = response["output"]["message"]["content"]
+    return "".join(part.get("text", "") for part in parts).strip()
+
+
+def generate_json(client, prompt: str):
+    raw = generate_text(client, prompt)
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.lower().startswith("json"):
+            text = text[4:].strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start : end + 1])
+            except json.JSONDecodeError:
+                return None
+        start = text.find("[")
+        end = text.rfind("]")
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start : end + 1])
+            except json.JSONDecodeError:
+                return None
+    return None
+
+
 def generate_answer(client, question: str, context: str) -> str:
     prompt = (
         "Answer the question using only the retrieved notes below. "
@@ -87,9 +123,4 @@ def generate_answer(client, question: str, context: str) -> str:
         f"Notes:\n{context}\n\n"
         f"Question: {question}"
     )
-    response = client.converse(
-        modelId=CHAT_MODEL,
-        messages=[{"role": "user", "content": [{"text": prompt}]}],
-    )
-    parts = response["output"]["message"]["content"]
-    return "".join(part.get("text", "") for part in parts).strip()
+    return generate_text(client, prompt)

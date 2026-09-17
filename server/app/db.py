@@ -106,6 +106,11 @@ def init_db():
         )
         """
     )
+    chat_columns = {row["name"] for row in connection.execute("PRAGMA table_info(chat_turns)")}
+    if "mode" not in chat_columns:
+        connection.execute("ALTER TABLE chat_turns ADD COLUMN mode TEXT")
+    if "trace" not in chat_columns:
+        connection.execute("ALTER TABLE chat_turns ADD COLUMN trace TEXT")
     connection.commit()
     connection.close()
 

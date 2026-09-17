@@ -13,6 +13,7 @@ import {
 import Button from './Button'
 import EmptyState from './EmptyState'
 import Panel from './Panel'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { DocChunk, DocumentDetail, DocumentItem, FileStatus, PendingUpload } from '../types'
 
 const ACCEPTED_TYPES = '.pdf,.txt,.md,.docx'
@@ -352,20 +353,23 @@ function DocumentsPanel({
           />
         </label>
         <div className="doc-toolbar-actions">
-          <label className="doc-sort-wrap">
-            <span className="profile-label">Sort</span>
-            <select
-              className="field-input glass doc-sort"
-              value={sort}
-              onChange={(event) => setSort(event.target.value as SortKey)}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="doc-sort-wrap">
+            <span className="profile-label" id="doc-sort-label">
+              Sort
+            </span>
+            <Select value={sort} onValueChange={(value) => setSort(value as SortKey)}>
+              <SelectTrigger className="doc-sort" aria-labelledby="doc-sort-label">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button variant="primary" onClick={() => setUploadOpen(true)}>
             <Upload size={16} strokeWidth={2} />
             Upload

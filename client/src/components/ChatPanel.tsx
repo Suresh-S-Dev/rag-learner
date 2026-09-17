@@ -5,16 +5,21 @@ import Button from './Button'
 import EmptyState from './EmptyState'
 import FormattedText from './FormattedText'
 import TextArea from './TextArea'
-import type { ChatMessage, ChatTurn, Profile, RetrievedChunk } from '../types'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RAG_MODE_GROUPS, RAG_MODES, isRagMode, ragModeById, type RagModeId } from '../rag/modes'
+import type { ChatMessage, ChatTurn, Profile, RagTrace, RetrievedChunk } from '../types'
 
-type SideTab = 'chunks' | 'history'
+type SideTab = 'path' | 'chunks' | 'history'
 
 type Props = {
   messages: ChatMessage[]
   draft: string
   asking: boolean
   canAsk: boolean
+  ragMode: RagModeId
+  onRagModeChange: (mode: RagModeId) => void
   activeChunks: RetrievedChunk[]
+  activeTrace: RagTrace | null
   history: ChatTurn[]
   activeTurnId: number | null
   suggestions: string[]
@@ -45,7 +50,10 @@ function ChatPanel({
   draft,
   asking,
   canAsk,
+  ragMode,
+  onRagModeChange,
   activeChunks,
+  activeTrace,
   history,
   activeTurnId,
   suggestions,
@@ -60,7 +68,8 @@ function ChatPanel({
   onNewChat,
 }: Props) {
   const scroller = useRef<HTMLDivElement>(null)
-  const [side, setSide] = useState<SideTab>('chunks')
+  const [side, setSide] = useState<SideTab>('path')
+  const selectedMode = ragModeById(ragMode)
 
   useEffect(() => {
     const node = scroller.current
@@ -80,11 +89,35 @@ function ChatPanel({
       <section className="chat-main glass">
         <div className="chat-toolbar">
           <h2 className="panel-title">Chat</h2>
+          <Select
+            value={ragMode}
+            onValueChange={(value) => {
+              if (isRagMode(value)) onRagModeChange(value)
+            }}
+            disabled={asking}
+          >
+            <SelectTrigger className="chat-mode-select" aria-label="RAG type">
+              <SelectValue placeholder="RAG type" />
+            </SelectTrigger>
+            <SelectContent>
+              {RAG_MODE_GROUPS.map((group) => (
+                <SelectGroup key={group}>
+                  <SelectLabel>{group}</SelectLabel>
+                  {RAG_MODES.filter((item) => item.group === group).map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
           <Button variant="secondary" onClick={onNewChat} disabled={asking || messages.length === 0}>
             <SquarePen size={16} strokeWidth={2} />
             New chat
           </Button>
         </div>
+        <p className="chat-mode-copy">{selectedMode.summary}</p>
         <div className="chat-thread" ref={scroller}>
           {messages.length === 0 ? (
             <div className="chat-empty">
@@ -115,7 +148,7 @@ function ChatPanel({
                     className={`chat-bubble is-${message.role}${message.chunks.length ? ' has-chunks' : ''}`}
                     onClick={() => {
                       onSelect(message)
-                      setSide('chunks')
+                      setSide(message.role === 'assistant' ? 'path' : 'chunks')
                     }}
                   >
                     <div className="chat-head">
@@ -126,6 +159,9 @@ function ChatPanel({
                       <span className="chat-role">
                         {message.role === 'user' ? profile.userName : profile.assistantName}
                       </span>
+                      {message.role === 'assistant' && message.trace?.label ? (
+                        <span className="chat-mode-tag">{message.trace.label}</span>
+                      ) : null}
                     </div>
                     <FormattedText text={message.text} />
                   </button>
@@ -138,7 +174,7 @@ function ChatPanel({
                       <Avatar name={profile.assistantName} src={profile.assistantAvatar} />
                       <span className="chat-role">{profile.assistantName}</span>
                     </div>
-                    <p className="empty">Retrieving and generating…</p>
+                    <p className="empty">{selectedMode.waiting}</p>
                   </div>
                 </li>
               ) : null}
@@ -165,11 +201,20 @@ function ChatPanel({
           <button
             type="button"
             role="tab"
+            aria-selected={side === 'path'}
+            className={`sidebar-tab${side === 'path' ? ' is-active' : ''}`}
+            onClick={() => setSide('path')}
+          >
+            How it ran
+          </button>
+          <button
+            type="button"
+            role="tab"
             aria-selected={side === 'chunks'}
             className={`sidebar-tab${side === 'chunks' ? ' is-active' : ''}`}
             onClick={() => setSide('chunks')}
           >
-            Retrieved chunks
+            Chunks
           </button>
           <button
             type="button"
@@ -181,7 +226,21 @@ function ChatPanel({
             History
           </button>
         </div>
-        {side === 'chunks' ? (
+        {side === 'path' ? (
+          activeTrace ? (
+            <div className="rag-path">
+              <p className="learn-a-kicker">{activeTrace.label}</p>
+              <p className="rag-path-summary">{activeTrace.summary}</p>
+              <ol className="rag-path-steps">
+                {activeTrace.steps.map((step, index) => (
+                  <li key={`${index}-${step}`}>{step}</li>
+                ))}
+              </ol>
+            </div>
+          ) : (
+            <EmptyState>Pick a RAG type, ask a question, then this tab shows the path that type took.</EmptyState>
+          )
+        ) : side === 'chunks' ? (
           activeChunks.length === 0 ? (
             <EmptyState>Retrieved chunks from the selected answer will appear here.</EmptyState>
           ) : (
@@ -209,11 +268,13 @@ function ChatPanel({
                     className="history-open"
                     onClick={() => {
                       onSelectHistory(turn)
-                      setSide('chunks')
+                      setSide('path')
                     }}
                   >
                     <span className="file-name">{turn.question}</span>
-                    <span className="file-size">{formatWhen(turn.createdAt)}</span>
+                    <span className="file-size">
+                      {turn.trace?.label || ragModeById(turn.mode).label} · {formatWhen(turn.createdAt)}
+                    </span>
                   </button>
                   <Button variant="ghost" onClick={() => onRemoveHistory(turn.id)}>
                     Remove

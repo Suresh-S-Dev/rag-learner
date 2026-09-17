@@ -24,6 +24,7 @@ import { Toaster } from '@/components/ui/sonner'
 import { toast, toastFromError } from '@/lib/toast'
 import { loadProfile, saveProfile } from './profile'
 import { applyTheme, getInitialThemeMode, getSystemTheme, persistThemeMode, resolveTheme } from './theme'
+import { isRagMode, type RagModeId } from './rag/modes'
 import type {
   ChatMessage,
   ChatTurn,
@@ -33,6 +34,7 @@ import type {
   GalleryImage,
   PendingUpload,
   Profile,
+  RagTrace,
   RetrievedChunk,
   TabId,
   ThemeMode,
@@ -41,6 +43,7 @@ import './App.css'
 
 const QUESTION_KEY = 'rag-learner-question'
 const CHAT_SESSION_KEY = 'rag-learner-chat-session'
+const RAG_MODE_KEY = 'rag-learner-rag-mode'
 const TABS: TabId[] = ['home', 'documents', 'learn', 'gallery', 'profile']
 
 function loadQuestion(): string {
@@ -57,10 +60,22 @@ function writeTabHash(tab: TabId) {
   if (window.location.hash !== next) window.location.hash = tab
 }
 
+function loadRagMode(): RagModeId {
+  const value = localStorage.getItem(RAG_MODE_KEY) ?? ''
+  return isRagMode(value) ? value : 'basic'
+}
+
 function messagesFromTurns(turns: ChatTurn[]): ChatMessage[] {
   return turns.flatMap((turn) => [
     { id: `q-${turn.id}`, role: 'user' as const, text: turn.question, chunks: [] },
-    { id: `a-${turn.id}`, role: 'assistant' as const, text: turn.answer, chunks: turn.chunks },
+    {
+      id: `a-${turn.id}`,
+      role: 'assistant' as const,
+      text: turn.answer,
+      chunks: turn.chunks,
+      mode: turn.mode,
+      trace: turn.trace,
+    },
   ])
 }
 
@@ -91,8 +106,10 @@ function App() {
   const [galleryPending, setGalleryPending] = useState<File[]>([])
   const [asking, setAsking] = useState(false)
   const [question, setQuestion] = useState(loadQuestion)
+  const [ragMode, setRagMode] = useState<RagModeId>(loadRagMode)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [activeChunks, setActiveChunks] = useState<RetrievedChunk[]>([])
+  const [activeTrace, setActiveTrace] = useState<RagTrace | null>(null)
   const [history, setHistory] = useState<ChatTurn[]>([])
   const [activeTurnId, setActiveTurnId] = useState<number | null>(null)
   const [suggestions, setSuggestions] = useState<string[]>([])
@@ -112,6 +129,10 @@ function App() {
     .map((item) => item.id)
     .join(',')
   const canAsk = files.some((item) => item.status === 'ready') && !asking && !uploading
+
+  useEffect(() => {
+    localStorage.setItem(RAG_MODE_KEY, ragMode)
+  }, [ragMode])
 
   useEffect(() => {
     applyTheme(theme)
@@ -167,9 +188,11 @@ function App() {
       const last = shown[shown.length - 1]
       if (last) {
         setActiveChunks(last.chunks)
+        setActiveTrace(last.trace ?? null)
         setActiveTurnId(last.id)
       } else {
         setActiveChunks([])
+        setActiveTrace(null)
         setActiveTurnId(null)
       }
     } catch (err) {
@@ -329,21 +352,31 @@ function App() {
     setQuestion('')
     setAsking(true)
     try {
-      const payload = await askQuestion(text)
+      const payload = await askQuestion(text, ragMode)
       const turn: ChatTurn = {
         id: payload.id,
         createdAt: payload.createdAt,
         question: payload.question ?? text,
         answer: payload.answer,
         chunks: payload.chunks,
+        mode: payload.mode,
+        trace: payload.trace,
       }
       setHistory((current) => [...current, turn])
       setMessages((current) => [
         ...current.slice(0, -1),
         { id: `q-${turn.id}`, role: 'user', text: turn.question, chunks: [] },
-        { id: `a-${turn.id}`, role: 'assistant', text: turn.answer, chunks: turn.chunks },
+        {
+          id: `a-${turn.id}`,
+          role: 'assistant',
+          text: turn.answer,
+          chunks: turn.chunks,
+          mode: turn.mode,
+          trace: turn.trace,
+        },
       ])
       setActiveChunks(turn.chunks)
+      setActiveTrace(turn.trace ?? null)
       setActiveTurnId(turn.id)
     } catch (err) {
       setMessages((current) => current.slice(0, -1))
@@ -359,16 +392,18 @@ function App() {
   }
 
   function onSelectMessage(message: ChatMessage) {
-    if (message.chunks.length) {
+    if (message.chunks.length || message.trace) {
       setActiveChunks(message.chunks)
+      setActiveTrace(message.trace ?? null)
       const match = /^a-(\d+)$/.exec(message.id)
       if (match) setActiveTurnId(Number(match[1]))
       return
     }
     const index = messages.findIndex((item) => item.id === message.id)
-    const next = messages.slice(index + 1).find((item) => item.role === 'assistant' && item.chunks.length)
+    const next = messages.slice(index + 1).find((item) => item.role === 'assistant')
     if (next) {
       setActiveChunks(next.chunks)
+      setActiveTrace(next.trace ?? null)
       const match = /^a-(\d+)$/.exec(next.id)
       if (match) setActiveTurnId(Number(match[1]))
     }
@@ -376,6 +411,7 @@ function App() {
 
   function onSelectHistory(turn: ChatTurn) {
     setActiveChunks(turn.chunks)
+    setActiveTrace(turn.trace ?? null)
     setActiveTurnId(turn.id)
     setMessages(messagesFromTurns([turn]))
   }
@@ -386,6 +422,7 @@ function App() {
     localStorage.setItem(CHAT_SESSION_KEY, String(lastId))
     setMessages([])
     setActiveChunks([])
+    setActiveTrace(null)
     setActiveTurnId(null)
   }
 
@@ -400,6 +437,7 @@ function App() {
         const last = shown[shown.length - 1]
         setActiveTurnId(last ? last.id : null)
         setActiveChunks(last ? last.chunks : [])
+        setActiveTrace(last ? last.trace ?? null : null)
       }
       toast.success('Removed from history')
     } catch (err) {
@@ -428,7 +466,10 @@ function App() {
             draft={question}
             asking={asking}
             canAsk={canAsk}
+            ragMode={ragMode}
+            onRagModeChange={setRagMode}
             activeChunks={activeChunks}
+            activeTrace={activeTrace}
             history={history}
             activeTurnId={activeTurnId}
             suggestions={suggestions}

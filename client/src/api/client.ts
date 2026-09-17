@@ -60,11 +60,11 @@ export async function deleteChatTurn(id: number) {
   return response.json()
 }
 
-export async function askQuestion(question: string) {
+export async function askQuestion(question: string, mode = 'basic') {
   const response = await fetch(`${API}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, mode }),
   })
   if (!response.ok) throw new Error(await readError(response))
   return response.json()

@@ -63,7 +63,8 @@ client/src/
 - `GET /documents/{id}`
 - `GET /documents/{id}/chunks`
 - `DELETE /documents/{id}`
-- `POST /ask` — `{ "question": "..." }` returns `{ answer, chunks }`
+- `GET /rag-modes` — catalog of runnable RAG types for the chat picker
+- `POST /ask` — `{ "question": "...", "mode": "basic" }` returns `{ answer, chunks, mode, trace }`
 - `GET /suggest` — one LLM call for exactly 3 questions across all ready documents; cached until that set changes
 - `GET /gallery` and `POST /gallery` — image files; `GET /gallery/{id}/file`; `DELETE /gallery/{id}`
 - `GET /learn` and `POST /learn` — title, body, optional image (also stored in gallery); `DELETE /learn/{id}`
@@ -105,4 +106,4 @@ Do not add comments anywhere: frontend, backend, configs, scripts, or gitignore.
 
 ## Current stage
 
-The pipeline is implemented: ingest, chunk, embed, retrieve, and generate. The UI uses a bottom dock with Home, Documents, Learn, Gallery, and Profile. Learn covers RAG stages and custom notes with optional images that appear in Gallery.
+The pipeline is implemented: ingest, chunk, embed, retrieve, and generate. Chat can run several RAG types (basic, sparse, hybrid, HyDE, multi-query, conversational, rerank, adaptive, corrective, self, multi-hop, agentic, multi-agent, graph, branched, memory). The sidebar shows the path each type took. Learn is a Q&A study set covering those ideas.

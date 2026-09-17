@@ -40,12 +40,21 @@ export type RetrievedChunk = {
   text: string
 }
 
+export type RagTrace = {
+  mode: string
+  label: string
+  summary: string
+  steps: string[]
+}
+
 export type ChatTurn = {
   id: number
   createdAt: string
   question: string
   answer: string
   chunks: RetrievedChunk[]
+  mode?: string
+  trace?: RagTrace | null
 }
 
 export type ChatMessage = {
@@ -53,6 +62,8 @@ export type ChatMessage = {
   role: 'user' | 'assistant'
   text: string
   chunks: RetrievedChunk[]
+  mode?: string
+  trace?: RagTrace | null
 }
 
 export type GalleryImage = {
@@ -71,4 +82,5 @@ export type LearnPoint = {
 export type Lesson = {
   title: string
   body: string
+  section: string
 }
